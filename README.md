@@ -8,9 +8,7 @@ Este sistema resuelve el "eslabón perdido" de Antigravity. Por defecto, tus age
 **¿Por qué usar este flujo?**
 
 🔄 Sincronización Invisible: No más git push manual. Si guardas un cambio, ya está en la nube.
-
 🧠 Arquitectura Modular: Separamos tus Agentes (Lógica Pública) de tus Conversaciones (Memoria Privada).
-
 💻 Portabilidad Total: Cambia de PC y retoma tu conversación exactamente donde la dejaste.
 
 🛠️ **Herramientas Necesarias**
@@ -18,7 +16,6 @@ Instala estas herramientas para asegurar la compatibilidad total:
 
 Herramienta                  Función                         
 🧩 Git for Windows           Motor de control de versiones.
-
 ⚡ PowerShell 7+             Ejecución de scripts estable.  
 📝 VS Code                   Editor recomendado.            
 

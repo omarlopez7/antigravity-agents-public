@@ -1,5 +1,6 @@
 # 🌌 Antigravity Sync System (Windows Engine)
-### *The Ultimate Bidirectional Bridge for Google’s Agentic Workflows*
+
+### *The Ultimate Bidirectional Bridge for Google's Agentic Workflows*
 
 ![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-blue?logo=windows)
@@ -40,35 +41,47 @@ Crea la carpeta maestra donde vivirán tus agentes:
 
 ```powershell
 mkdir C:\src\antigravity-agents-public
+```
 
-**### **2️⃣ El Puente de Datos (Symlink)****
+### **2️⃣ El Puente de Datos (Symlink)**
+
 ⚠️ IMPORTANTE: Ejecuta PowerShell como Administrador.
 
 Engañamos a Antigravity para que redirija su lectura a nuestra carpeta de GitHub.
 
+```powershell
 # Reemplaza 'TU_USUARIO' con tu nombre real de Windows
 $user = $env:USERNAME
 mklink /D "C:\Users\$user\.gemini\antigravity\.agents" "C:\src\antigravity-agents-public"
+```
 
-**### **3️⃣ Activar el Motor de Sincronización****
+### **3️⃣ Activar el Motor de Sincronización**
+
 El script Sync-Antigravity-Agents.ps1 vigila tus archivos. Configúralo en el Programador de Tareas:
 
-Disparador: Al iniciar sesión (At LogOn).
+**Disparador:** Al iniciar sesión (At LogOn).
 
-Acción: powershell.exe
+**Acción:** powershell.exe
 
-Argumentos: ```powershell
+**Argumentos:**
+
+```powershell
 -WindowStyle Hidden -ExecutionPolicy Bypass -File "C:\src\scripts\Sync-Antigravity-Agents.ps1"
+```
 
 ---
 
 ## 📂 **Estructura del Ecosistema**
 
-```bash
+```
 C:\src\
 ├── 🤖 antigravity-agents-public/  # [REPO PÚBLICO] Workflows & Skills
 ├── 📂 scripts/                    # Scripts de automatización (.ps1)
 └── 🔐 [App-Name]_conversation/    # [REPO PRIVADO] Historial de chats (.pb)
+```
 
-##🤝 Contribuciones
+---
+
+## 🤝 **Contribuciones**
+
 ¡Este es un proyecto abierto! Si tienes una idea para mejorar el script de PowerShell, abre un Pull Request.

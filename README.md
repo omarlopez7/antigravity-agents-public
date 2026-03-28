@@ -41,7 +41,7 @@ Crea la carpeta maestra donde vivirán tus agentes:
 ```powershell
 mkdir C:\src\antigravity-agents-public
 
-### **2️⃣ El Puente de Datos (Symlink)**
+**### **2️⃣ El Puente de Datos (Symlink)****
 ⚠️ IMPORTANTE: Ejecuta PowerShell como Administrador.
 
 Engañamos a Antigravity para que redirija su lectura a nuestra carpeta de GitHub.
@@ -50,7 +50,7 @@ Engañamos a Antigravity para que redirija su lectura a nuestra carpeta de GitHu
 $user = $env:USERNAME
 mklink /D "C:\Users\$user\.gemini\antigravity\.agents" "C:\src\antigravity-agents-public"
 
-### **3️⃣ Activar el Motor de Sincronización**
+**### **3️⃣ Activar el Motor de Sincronización****
 El script Sync-Antigravity-Agents.ps1 vigila tus archivos. Configúralo en el Programador de Tareas:
 
 Disparador: Al iniciar sesión (At LogOn).

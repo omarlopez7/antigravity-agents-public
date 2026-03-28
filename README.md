@@ -1,55 +1,65 @@
-🚀 Antigravity Sync System (Windows Edition)
-Este proyecto implementa un flujo de trabajo de sincronización bidireccional automática para el entorno de agentes Antigravity. Resuelve el problema de la persistencia de datos y la colaboración distribuida, permitiendo que tus agentes, configuraciones y planes de trabajo te sigan a cualquier computadora a través de GitHub.
+Brainstormer
+Brainstormer said
+¡Entendido! Vamos a elevar el nivel. Un README.md profesional debe entrar por los ojos: con una estructura jerárquica clara, insignias (badges), iconos visuales y bloques de código bien definidos.
 
-🧠 Lo que resolvemos con este flujo
-Persistencia en la Nube: Antigravity guarda localmente; nosotros lo hacemos global.
+Aquí tienes una versión Premium para tu repositorio. Puedes copiar y pegar esto directamente en tu archivo README.md de GitHub:
 
-Cerebro Modular: Separamos la lógica de los agentes (Pública/Compartida) de la memoria de los proyectos (Privada).
+🌌 Antigravity Sync System (Windows Engine)
+The Ultimate Bidirectional Bridge for Google’s Agentic Workflows
+🎯 ¿Qué es este Proyecto?
+Este sistema resuelve el "eslabón perdido" de Antigravity. Por defecto, tus agentes y conversaciones viven atrapados en tu disco duro local. Este flujo de trabajo transforma tu entorno local en un ecosistema modular en la nube, permitiendo que tus agentes y progresos se sincronicen automáticamente entre múltiples computadoras usando GitHub como cerebro central.
 
-Automatización Total: No más git push manual. El sistema "vigila" tus cambios y los sube al instante.
+¿Por qué usar este flujo?
+🔄 Sincronización Invisible: No más git push manual. Si guardas un cambio, ya está en la nube.
+
+🧠 Arquitectura Modular: Separamos tus Agentes (Lógica Pública) de tus Conversaciones (Memoria Privada).
+
+💻 Portabilidad Total: Cambia de PC y retoma tu conversación exactamente donde la dejaste.
 
 🛠️ Herramientas Necesarias
-Para que este flujo funcione en Windows, necesitas instalar lo siguiente:
+Si no tienes estas herramientas, descárgalas e instálalas antes de empezar:
 
-Git for Windows: El motor de versiones.
-
-Importante: Durante la instalación, asegúrate de activar el "Git Credential Manager" para que no te pida contraseña cada vez.
-
-PowerShell 7+: (Opcional pero recomendado) Para ejecutar los scripts de automatización con mayor estabilidad.
-
-Cuenta de GitHub: Para alojar tus repositorios.
-
-Antigravity SDK: El entorno de agentes de Google.
-
-⚙️ Configuración del Sistema (Paso a Paso)
-1. Preparación de la Carpeta Maestra
-Elegimos una ruta de desarrollo limpia fuera de las carpetas protegidas de Windows:
-
-Ruta: C:\src\antigravity-agents-public
-
-2. El "Puente" (Symlink)
-Usamos un Enlace Simbólico para engañar a Antigravity. La aplicación busca sus agentes en su ruta por defecto, pero Windows la redirige silenciosamente a nuestra carpeta de GitHub:
+Herramienta	Función	Link de Descarga
+Git for Windows	El motor de control de versiones.	📥 Descargar
+PowerShell 7+	Ejecución de scripts de alta velocidad.	📥 Descargar
+VS Code	El mejor editor para tus archivos .md.	📥 Descargar
+GitHub CLI	(Opcional) Para gestionar repos desde consola.	📥 Descargar
+🚀 Guía de Instalación Rápida
+1️⃣ Preparar el Terreno
+Crea la carpeta maestra donde vivirán tus agentes (fuera de carpetas de sistema para evitar errores de permisos):
 
 PowerShell
-# Ejecutado como Administrador
+mkdir C:\src\antigravity-agents-public
+2️⃣ El Puente de Datos (Symlink)
+Debemos engañar a Antigravity para que "crea" que sus archivos están en la carpeta de siempre, cuando en realidad están en nuestro repositorio de Git.
+
+⚠️ Nota: Abre PowerShell como Administrador.
+
+PowerShell
+# Reemplaza TU_USUARIO con tu nombre de usuario de Windows
 mklink /D "C:\Users\TU_USUARIO\.gemini\antigravity\.agents" "C:\src\antigravity-agents-public"
-3. Automatización con PowerShell (The Watcher)
-El script Sync-Antigravity-Agents.ps1 realiza dos tareas críticas:
+3️⃣ Activar el Motor de Sincronización
+El script Sync-Antigravity-Agents.ps1 se encarga de todo el trabajo sucio. Configúralo como una Tarea Programada siguiendo estos parámetros:
 
-Push Instantáneo: Usa un FileSystemWatcher para detectar cuando guardas un archivo .md o una skill y lo sube a GitHub en segundos.
+Disparador: Al iniciar sesión (At LogOn).
 
-Pull Programado: Cada 60 segundos (o el tiempo que configures), revisa si hay actualizaciones en la nube para descargar.
+Acción: powershell.exe
 
-4. Persistencia con Tareas Programadas
-Para que el usuario no tenga que abrir consolas, configuramos una Tarea Programada de Windows:
-
-Trigger: Al iniciar sesión (At LogOn).
-
-Action: Ejecutar PowerShell en modo oculto (-WindowStyle Hidden).
-
-Privilegios: Ejecutar con los privilegios más altos (necesario para el Symlink).
+Argumentos: -WindowStyle Hidden -ExecutionPolicy Bypass -File "C:\src\scripts\Sync-Antigravity-Agents.ps1"
 
 📂 Estructura del Ecosistema
-antigravity-agents-public (Repo Público): Contiene tus Workflows y Skills. Es tu "librería de talentos" disponible para el mundo.
+Bash
+C:\src\
+├── 🤖 antigravity-agents-public/  <-- [REPO PÚBLICO] Tus Workflows & Skills
+└── 📂 [App-Name]_conversation/    <-- [REPO PRIVADO] Tu historial de chats (.pb)
+🛠️ Mantenimiento y Comandos Útiles
+Si el sistema parece "dormido", puedes forzar una sincronización manual con estos comandos rápidos:
 
-[App-Name]_conversation (Repo Privado): (Próximo paso) Donde vive el historial binario .pb y los documentos brain/ de cada proyecto específico.
+Verificar estado: git status
+
+Forzar descarga: git pull origin main
+
+Forzar subida: git push origin main
+
+🤝 Contribuciones
+¡Este es un proyecto abierto! Si tienes una idea para mejorar el script de PowerShell o quieres añadir un nuevo flujo de trabajo para Linux/Mac, siéntete libre de abrir un Pull Request.

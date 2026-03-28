@@ -2,9 +2,11 @@
 The Ultimate Bidirectional Bridge for Google’s Agentic Workflows
 
 🎯 **¿Qué es este Proyecto?**
+
 Este sistema resuelve el "eslabón perdido" de Antigravity. Por defecto, tus agentes y conversaciones viven atrapados localmente. Este flujo transforma tu entorno en un ecosistema modular en la nube, permitiendo que tus agentes y progresos se sincronicen automáticamente entre múltiples computadoras usando GitHub como cerebro central.
 
 **¿Por qué usar este flujo?**
+
 🔄 Sincronización Invisible: No más git push manual. Si guardas un cambio, ya está en la nube.
 🧠 Arquitectura Modular: Separamos tus Agentes (Lógica Pública) de tus Conversaciones (Memoria Privada).
 💻 Portabilidad Total: Cambia de PC y retoma tu conversación exactamente donde la dejaste.
@@ -13,7 +15,7 @@ Este sistema resuelve el "eslabón perdido" de Antigravity. Por defecto, tus age
 Instala estas herramientas para asegurar la compatibilidad total:
 
 Herramienta                  Función                         
-🧩 Git for Windows           Motor de control de versiones. 
+🧩 Git for Windows           Motor de control de versiones.
 ⚡ PowerShell 7+             Ejecución de scripts estable.  
 📝 VS Code                   Editor recomendado.            
 

@@ -2,10 +2,11 @@ import os
 import time
 import socket
 import subprocess
+import urllib.request  # <--- Nuevo: para descargar el icono
 from datetime import datetime
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-from win11toast import toast  # <--- NOTIFICACIONES
+from win11toast import toast
 
 # --- CONFIGURACIÓN ---
 REPO_URL = "https://github.com/omarlopez7/antigravity-agents-public.git"
@@ -13,14 +14,23 @@ LOCAL_REPO_PATH = r"C:\src\antigravity-agents-public"
 USER_NAME = os.getlogin()
 ANTIGRAVITY_PATH = rf"C:\Users\{USER_NAME}\.gemini\antigravity\.agents"
 BRANCH = "main"
+ICON_PATH = r"C:\src\github_icon.png" # <--- Ruta local del icono
 
-# --- 1. PREPARACIÓN DE CARPETAS ---
+# --- 1. PREPARACIÓN DE CARPETAS E ICONO ---
 if not os.path.exists(r"C:\src"):
     os.makedirs(r"C:\src")
 
 if not os.path.exists(LOCAL_REPO_PATH):
     os.makedirs(LOCAL_REPO_PATH)
     print(f"🟦 Carpeta creada en {LOCAL_REPO_PATH}")
+
+# Descargar el icono localmente si no existe
+if not os.path.exists(ICON_PATH):
+    try:
+        # Usamos un PNG estándar de GitHub
+        urllib.request.urlretrieve("https://cdn-icons-png.flaticon.com/512/25/25231.png", ICON_PATH)
+    except Exception as e:
+        print(f"⚠️ No se pudo descargar el icono: {e}")
 
 # --- 2. VÍNCULO CON ANTIGRAVITY (SYMLINK) ---
 if not os.path.exists(ANTIGRAVITY_PATH):
@@ -51,8 +61,8 @@ def sync_now(direction):
             status = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
             
             if status.stdout.strip():
-                mensaje = f"Auto-sync: {fecha_completa} de {computer_name}"
-                subprocess.run(["git", "commit", "-m", mensaje], capture_output=True)
+                mensaje_commit = f"Auto-sync: {fecha_completa} de {computer_name}"
+                subprocess.run(["git", "commit", "-m", mensaje_commit], capture_output=True)
                 subprocess.run(["git", "push", "origin", BRANCH], capture_output=True)
                 print(f"🟩 >>> [{hora_actual}] Cambios SUBIDOS a GitHub")
         
@@ -60,16 +70,35 @@ def sync_now(direction):
             resultado = subprocess.run(["git", "pull", "origin", BRANCH, "--rebase"], capture_output=True, text=True)
             salida_git = resultado.stdout.lower() + resultado.stderr.lower()
             
-            # Si Git NO dice que ya está actualizado, significa que descargó algo nuevo
             if "already up to date" not in salida_git and "actualizado" not in salida_git:
-                print(f"⬜ --- [{hora_actual}] Cambios DESCARGADOS de GitHub")
+                # ¡MAGIA AQUÍ! Averiguamos qué archivos bajaron
+                diff_cmd = subprocess.run(["git", "diff", "--name-only", "HEAD@{1}", "HEAD"], capture_output=True, text=True)
+                archivos = [a for a in diff_cmd.stdout.strip().split('\n') if a] # Limpiamos lineas vacías
                 
-                # --- NOTIFICACIÓN DE WINDOWS ---
+                # Preparamos el mensaje y la acción al hacer clic
+                if len(archivos) == 1:
+                    archivo_descargado = archivos[0]
+                    mensaje_notificacion = f"Archivo actualizado: {archivo_descargado}"
+                    ruta_al_clic = os.path.join(LOCAL_REPO_PATH, archivo_descargado) # Abre el archivo
+                elif len(archivos) > 1:
+                    nombres = ", ".join(archivos)
+                    # Si la lista es muy larga, la cortamos para que quepa en la notificación
+                    if len(nombres) > 40: nombres = nombres[:37] + "..."
+                    mensaje_notificacion = f"{len(archivos)} archivos actualizados: {nombres}"
+                    ruta_al_clic = LOCAL_REPO_PATH # Abre la carpeta
+                else:
+                    mensaje_notificacion = "Nuevos agentes descargados."
+                    ruta_al_clic = LOCAL_REPO_PATH
+                
+                print(f"⬜ --- [{hora_actual}] {mensaje_notificacion}")
+                
+                # Lanzar notificación de Windows
                 try:
                     toast("📥 Antigravity Sync", 
-                          f"Nuevos agentes descargados a las {hora_actual}.", 
+                          mensaje_notificacion, 
                           duration='short',
-                          icon='https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png')
+                          icon=ICON_PATH if os.path.exists(ICON_PATH) else None,
+                          on_click=ruta_al_clic) # <--- ESTO ABRE EL ARCHIVO O CARPETA
                 except Exception as e:
                     print(f"⚠️ Error al mostrar la notificación: {e}")
                 

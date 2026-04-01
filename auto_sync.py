@@ -1,72 +1,108 @@
 import os
 import time
+import socket
 import subprocess
+from datetime import datetime
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+from win11toast import toast  # <--- NOTIFICACIONES
 
 # --- CONFIGURACIÓN ---
-PATH_A_VIGILAR = r"C:\src\antigravity-agents-public"
-INTERVALO_PULL = 3600  # Descarga cambios de la nube cada 1 hora (segundos)
+REPO_URL = "https://github.com/omarlopez7/antigravity-agents-public.git"
+LOCAL_REPO_PATH = r"C:\src\antigravity-agents-public"
+USER_NAME = os.getlogin()
+ANTIGRAVITY_PATH = rf"C:\Users\{USER_NAME}\.gemini\antigravity\.agents"
+BRANCH = "main"
 
-class GitWatcher(FileSystemEventHandler):
-    """Esta clase es el 'Vigilante'. Reacciona cuando guardas archivos."""
-    
+# --- 1. PREPARACIÓN DE CARPETAS ---
+if not os.path.exists(r"C:\src"):
+    os.makedirs(r"C:\src")
+
+if not os.path.exists(LOCAL_REPO_PATH):
+    os.makedirs(LOCAL_REPO_PATH)
+    print(f"🟦 Carpeta creada en {LOCAL_REPO_PATH}")
+
+# --- 2. VÍNCULO CON ANTIGRAVITY (SYMLINK) ---
+if not os.path.exists(ANTIGRAVITY_PATH):
+    print("🟨 Creando enlace simbólico para Antigravity...")
+    try:
+        subprocess.run(["cmd", "/c", "mklink", "/D", ANTIGRAVITY_PATH, LOCAL_REPO_PATH], check=True)
+    except subprocess.CalledProcessError:
+        print("❌ Error: Debes ejecutar este script como Administrador la primera vez.")
+
+# --- 3. INICIALIZACIÓN DE GIT ---
+os.chdir(LOCAL_REPO_PATH)
+if not os.path.exists(os.path.join(LOCAL_REPO_PATH, ".git")):
+    subprocess.run(["git", "init"])
+    subprocess.run(["git", "remote", "add", "origin", REPO_URL])
+    subprocess.run(["git", "branch", "-M", BRANCH])
+    print("🟪 Repositorio Git inicializado.")
+
+# --- 4. FUNCIÓN DE SINCRONIZACIÓN MAESTRA ---
+def sync_now(direction):
+    hora_actual = datetime.now().strftime('%H:%M:%S')
+    fecha_completa = datetime.now().strftime('%Y-%m-%d %H:%M:%S') 
+    computer_name = socket.gethostname()
+
+    try:
+        os.chdir(LOCAL_REPO_PATH)
+        if direction == "UP":
+            subprocess.run(["git", "add", "."], capture_output=True)
+            status = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
+            
+            if status.stdout.strip():
+                mensaje = f"Auto-sync: {fecha_completa} de {computer_name}"
+                subprocess.run(["git", "commit", "-m", mensaje], capture_output=True)
+                subprocess.run(["git", "push", "origin", BRANCH], capture_output=True)
+                print(f"🟩 >>> [{hora_actual}] Cambios SUBIDOS a GitHub")
+        
+        elif direction == "DOWN":
+            resultado = subprocess.run(["git", "pull", "origin", BRANCH, "--rebase"], capture_output=True, text=True)
+            salida_git = resultado.stdout.lower() + resultado.stderr.lower()
+            
+            # Si Git NO dice que ya está actualizado, significa que descargó algo nuevo
+            if "already up to date" not in salida_git and "actualizado" not in salida_git:
+                print(f"⬜ --- [{hora_actual}] Cambios DESCARGADOS de GitHub")
+                
+                # --- NOTIFICACIÓN DE WINDOWS ---
+                try:
+                    toast("📥 Antigravity Sync", 
+                          f"Nuevos agentes descargados a las {hora_actual}.", 
+                          duration='short',
+                          icon='https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png')
+                except Exception as e:
+                    print(f"⚠️ Error al mostrar la notificación: {e}")
+                
+    except Exception as e:
+        print(f"🟥 Error en la sincronización: {e}")
+
+# --- 5. MONITOR DE CAMBIOS (WATCHER) ---
+class SincronizadorLocal(FileSystemEventHandler):
     def on_modified(self, event):
-        # Ignoramos carpetas y archivos temporales o del propio Git
-        if event.is_directory or ".git" in event.src_path:
-            return
-        
-        print(f"📝 Cambio detectado en: {event.src_path}")
-        self.ejecutar_sync(event.src_path)
-
-    def ejecutar_sync(self, file_path):
-        # Buscamos la carpeta raíz del repositorio (donde está el .git)
-        repo_dir = self.buscar_raiz_git(os.path.dirname(file_path))
-        
-        if repo_dir:
-            try:
-                print(f"📦 Sincronizando repo: {os.path.basename(repo_dir)}...")
-                # Cambiamos a la carpeta del repo
-                os.chdir(repo_dir)
-                
-                # Comandos de Git
-                subprocess.run(["git", "add", "."], check=True, capture_output=True)
-                # El commit solo se hace si hay algo nuevo
-                subprocess.run(["git", "commit", "-m", "Auto-sync via Python"], capture_output=True)
-                subprocess.run(["git", "push"], check=True, capture_output=True)
-                
-                print(f"✅ ¡Subida exitosa a GitHub!")
-            except subprocess.CalledProcessError as e:
-                print(f"⚠️ Nota: No había cambios nuevos para subir o hubo un error de red.")
-        else:
-            print("❌ No se encontró un repositorio Git para este archivo.")
-
-    def buscar_raiz_git(self, ruta):
-        """Busca hacia arriba hasta encontrar la carpeta .git"""
-        while ruta != os.path.dirname(ruta): # Mientras no lleguemos al disco C:
-            if os.path.exists(os.path.join(ruta, ".git")):
-                return ruta
-            ruta = os.path.dirname(ruta)
-        return None
+        if not event.is_directory and ".git" not in event.src_path:
+            sync_now(direction="UP")
+            
+    def on_created(self, event):
+        if not event.is_directory and ".git" not in event.src_path:
+            sync_now(direction="UP")
 
 if __name__ == "__main__":
-    # 1. Iniciamos el Vigilante de cambios (Push)
-    event_handler = GitWatcher()
+    event_handler = SincronizadorLocal()
     observer = Observer()
-    observer.schedule(event_handler, PATH_A_VIGILAR, recursive=True)
-    
-    print(f"🚀 MOTOR DE SYNC ACTIVADO")
-    print(f"👀 Vigilando: {PATH_A_VIGILAR}")
-    print("Presiona Ctrl+C para detener (o cierra la ventana)")
-    
+    observer.schedule(event_handler, LOCAL_REPO_PATH, recursive=True)
     observer.start()
 
-    # 2. Bucle para el Pull (Descarga) cada hora
+    print("==============================================")
+    print(" 🚀 SISTEMA DE AGENTES ANTIGRAVITY (PYTHON) ACTIVO ")
+    print(f" 📂 Repositorio: {LOCAL_REPO_PATH}")
+    print("==============================================")
+
+    # --- 6. BUCLE DE DESCARGA (CADA 60 SEGUNDOS) ---
     try:
         while True:
-            # Aquí podrías agregar una lógica para hacer 'git pull' en todas las subcarpetas
-            # Por ahora, mantenemos el script vivo
-            time.sleep(10) 
+            sync_now(direction="DOWN")
+            time.sleep(60)
     except KeyboardInterrupt:
+        print("\n🛑 Deteniendo el sistema...")
         observer.stop()
     observer.join()

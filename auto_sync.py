@@ -16,19 +16,16 @@ ANTIGRAVITY_PATH = rf"C:\Users\{USER_NAME}\.gemini\antigravity\.agents"
 BRANCH = "main"
 ICON_PATH = r"C:\src\github_icon.png" 
 
-# --- 1. PREPARACIÓN DE CARPETAS E ICONO ---
-if not os.path.exists(r"C:\src"):
-    os.makedirs(r"C:\src")
-
-if not os.path.exists(LOCAL_REPO_PATH):
-    os.makedirs(LOCAL_REPO_PATH)
-    print(f"🟦 Carpeta creada en {LOCAL_REPO_PATH}")
+# --- 1. PREPARACIÓN DE ENTORNO ---
+if not os.path.exists(LOCAL_REPO_PATH): 
+    os.makedirs(LOCAL_REPO_PATH, exist_ok=True)
 
 if not os.path.exists(ICON_PATH):
     try:
+        # Descarga de icono oficial para que la notificación se vea profesional
         urllib.request.urlretrieve("https://cdn-icons-png.flaticon.com/512/25/25231.png", ICON_PATH)
-    except Exception as e:
-        print(f"⚠️ No se pudo descargar el icono: {e}")
+    except:
+        pass
 
 # --- 2. VÍNCULO CON ANTIGRAVITY (SYMLINK) ---
 if not os.path.exists(ANTIGRAVITY_PATH):
@@ -36,113 +33,89 @@ if not os.path.exists(ANTIGRAVITY_PATH):
     try:
         subprocess.run(["cmd", "/c", "mklink", "/D", ANTIGRAVITY_PATH, LOCAL_REPO_PATH], check=True)
     except subprocess.CalledProcessError:
-        print("❌ Error: Debes ejecutar este script como Administrador la primera vez.")
+        print("❌ Error: Ejecuta como Administrador para crear el Symlink.")
 
-# --- 3. INICIALIZACIÓN DE GIT ---
-os.chdir(LOCAL_REPO_PATH)
-if not os.path.exists(os.path.join(LOCAL_REPO_PATH, ".git")):
-    subprocess.run(["git", "init"])
-    subprocess.run(["git", "remote", "add", "origin", REPO_URL])
-    subprocess.run(["git", "branch", "-M", BRANCH])
-    print("🟪 Repositorio Git inicializado.")
+# --- 3. FUNCIÓN DE NOTIFICACIÓN (REFORZADA) ---
+def avisar(titulo, mensaje, link):
+    print(f"📣 Notificando: {titulo}...")
+    try:
+        toast(
+            titulo, 
+            mensaje, 
+            duration='short', 
+            icon=ICON_PATH if os.path.exists(ICON_PATH) else None, 
+            on_click=link,
+            app_id='AntigravitySync' # Identificador para que Windows no la bloquee
+        )
+    except Exception as e:
+        print(f"⚠️ Error visual de Windows: {e}")
 
-# --- 4. FUNCIÓN DE SINCRONIZACIÓN MAESTRA ---
+# --- 4. FUNCIÓN DE SINCRONIZACIÓN ---
 def sync_now(direction):
-    hora_actual = datetime.now().strftime('%H:%M:%S')
-    fecha_completa = datetime.now().strftime('%Y-%m-%d %H:%M:%S') 
-    computer_name = socket.gethostname()
+    hora = datetime.now().strftime('%H:%M:%S')
+    os.chdir(LOCAL_REPO_PATH)
 
     try:
-        os.chdir(LOCAL_REPO_PATH)
         if direction == "UP":
+            # Pequeña pausa para que el editor de texto suelte el archivo
+            time.sleep(0.7) 
+            
             subprocess.run(["git", "add", "."], capture_output=True)
             status = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
             
-            # Si hay cambios reales...
             if status.stdout.strip():
-                # Contamos cuántos archivos se modificaron
-                lineas_status = status.stdout.strip().split('\n')
-                num_archivos = len(lineas_status)
-
-                mensaje_commit = f"Auto-sync: {fecha_completa} de {computer_name}"
-                subprocess.run(["git", "commit", "-m", mensaje_commit], capture_output=True)
-                subprocess.run(["git", "push", "origin", BRANCH], capture_output=True)
+                archivos = len(status.stdout.strip().split('\n'))
+                print(f"🚀 [DETECTADO] {archivos} cambios locales. Subiendo...")
                 
-                print(f"🟩 >>> [{hora_actual}] {num_archivos} archivo(s) SUBIDOS a GitHub")
+                subprocess.run(["git", "commit", "-m", f"Auto-sync {hora}"], capture_output=True)
+                res = subprocess.run(["git", "push", "origin", BRANCH], capture_output=True, text=True)
                 
-                # --- NUEVO: NOTIFICACIÓN DE SUBIDA ---
-                try:
-                    toast("🚀 Respaldo Exitoso", 
-                          f"Se guardaron {num_archivos} archivo(s) en la nube.", 
-                          duration='short',
-                          icon=ICON_PATH if os.path.exists(ICON_PATH) else None,
-                          on_click=LOCAL_REPO_PATH) # Al dar clic, abre tu carpeta de agentes
-                except Exception as e:
-                    print(f"⚠️ Error al mostrar la notificación: {e}")
+                if res.returncode == 0:
+                    print(f"🟩 >>> [{hora}] SUBIDA EXITOSA")
+                    avisar("🚀 Respaldo en GitHub", f"Se han subido {archivos} archivo(s) correctamente.", LOCAL_REPO_PATH)
+                else:
+                    print(f"🟥 Error en Push: {res.stderr}")
         
         elif direction == "DOWN":
-            resultado = subprocess.run(["git", "pull", "origin", BRANCH, "--rebase"], capture_output=True, text=True)
-            salida_git = resultado.stdout.lower() + resultado.stderr.lower()
+            res = subprocess.run(["git", "pull", "origin", BRANCH, "--rebase"], capture_output=True, text=True)
+            salida = res.stdout.lower() + res.stderr.lower()
             
-            if "already up to date" not in salida_git and "actualizado" not in salida_git:
-                diff_cmd = subprocess.run(["git", "diff", "--name-only", "HEAD@{1}", "HEAD"], capture_output=True, text=True)
-                archivos = [a for a in diff_cmd.stdout.strip().split('\n') if a] 
-                
-                if len(archivos) == 1:
-                    archivo_descargado = archivos[0]
-                    mensaje_notificacion = f"Archivo actualizado: {archivo_descargado}"
-                    ruta_al_clic = os.path.join(LOCAL_REPO_PATH, archivo_descargado)
-                elif len(archivos) > 1:
-                    nombres = ", ".join(archivos)
-                    if len(nombres) > 40: nombres = nombres[:37] + "..."
-                    mensaje_notificacion = f"{len(archivos)} archivos actualizados: {nombres}"
-                    ruta_al_clic = LOCAL_REPO_PATH
-                else:
-                    mensaje_notificacion = "Nuevos agentes descargados."
-                    ruta_al_clic = LOCAL_REPO_PATH
-                
-                print(f"⬜ --- [{hora_actual}] {mensaje_notificacion}")
-                
-                # --- NOTIFICACIÓN DE DESCARGA ---
-                try:
-                    toast("📥 Antigravity Sync", 
-                          mensaje_notificacion, 
-                          duration='short',
-                          icon=ICON_PATH if os.path.exists(ICON_PATH) else None,
-                          on_click=ruta_al_clic)
-                except Exception as e:
-                    print(f"⚠️ Error al mostrar la notificación: {e}")
+            if "already up to date" not in salida and "actualizado" not in salida:
+                print(f"⬜ --- [{hora}] DESCARGA DETECTADA")
+                avisar("📥 Nuevos Agentes", "Se han descargado cambios desde la nube.", LOCAL_REPO_PATH)
                 
     except Exception as e:
-        print(f"🟥 Error en la sincronización: {e}")
+        print(f"💥 Error crítico: {e}")
 
-# --- 5. MONITOR DE CAMBIOS (WATCHER) ---
+# --- 5. MONITOR DE ARCHIVOS (WATCHDOG) ---
 class SincronizadorLocal(FileSystemEventHandler):
     def on_modified(self, event):
         if not event.is_directory and ".git" not in event.src_path:
-            sync_now(direction="UP")
-            
+            sync_now("UP")
     def on_created(self, event):
         if not event.is_directory and ".git" not in event.src_path:
-            sync_now(direction="UP")
+            sync_now("UP")
 
+# --- 6. EJECUCIÓN PRINCIPAL ---
 if __name__ == "__main__":
+    # Prueba inicial para verificar que las notificaciones funcionan al arrancar
+    avisar("🔥 Antigravity Online", "El motor de sincronización está en marcha.", LOCAL_REPO_PATH)
+    
     event_handler = SincronizadorLocal()
     observer = Observer()
     observer.schedule(event_handler, LOCAL_REPO_PATH, recursive=True)
     observer.start()
 
     print("==============================================")
-    print(" 🚀 SISTEMA DE AGENTES ANTIGRAVITY (PYTHON) ACTIVO ")
-    print(f" 📂 Repositorio: {LOCAL_REPO_PATH}")
+    print(" ✅ SISTEMA DE AGENTES SINCRONIZADO ")
+    print(f" 📂 Ruta: {LOCAL_REPO_PATH}")
     print("==============================================")
 
-    # --- 6. BUCLE DE DESCARGA (CADA 60 SEGUNDOS) ---
     try:
         while True:
-            sync_now(direction="DOWN")
-            time.sleep(60)
+            sync_now("DOWN")
+            time.sleep(60) # Revisa GitHub cada minuto
     except KeyboardInterrupt:
-        print("\n🛑 Deteniendo el sistema...")
+        print("🛑 Deteniendo...")
         observer.stop()
     observer.join()
